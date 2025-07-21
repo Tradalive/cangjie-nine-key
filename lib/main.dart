@@ -66,13 +66,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _handleKeyPressed(int index) {
     setState(() {
-      _lastKeyPressed = index + 1;
-      // Add key code to buffer
-      _inputBuffer.add(keyCodes[index]);
-      // Build current code string
-      final code = _inputBuffer.join();
-      // Lookup candidates
-      _candidates = cangjieDictionary[code] ?? [];
+      if (index == -1) {
+        // Backspace
+        if (_inputBuffer.isNotEmpty) {
+          _inputBuffer.removeLast();
+          final code = _inputBuffer.join();
+          _candidates = cangjieDictionary[code] ?? [];
+        }
+      } else if (index == -2) {
+        // Clear (重輸)
+        _inputBuffer.clear();
+        _candidates = [];
+      } else {
+        // Add key code to buffer (for 0-8, mapping to A-I)
+        if (index >= 0 && index < keyCodes.length) {
+          _lastKeyPressed = index + 1;
+          _inputBuffer.add(keyCodes[index]);
+          final code = _inputBuffer.join();
+          _candidates = cangjieDictionary[code] ?? [];
+        }
+      }
     });
   }
 
@@ -108,20 +121,14 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 16),
             Text('Input buffer: ${_inputBuffer.join(" ")}', style: const TextStyle(fontSize: 18)),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(onPressed: _handleBackspace, child: const Text('Backspace')),
-                const SizedBox(width: 8),
-                ElevatedButton(onPressed: _handleClear, child: const Text('Clear')),
-              ],
-            ),
-            const SizedBox(height: 8),
             Text('Candidates: ${_candidates.isNotEmpty ? _candidates.join(", ") : "(none)"}', style: const TextStyle(fontSize: 18, color: Colors.blue)),
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: NineKeyKeyboard(onKeyPressed: _handleKeyPressed),
+              child: SizedBox(
+                height: 360, // Ensures keyboard has a non-zero height
+                child: NineKeyKeyboard(onKeyPressed: _handleKeyPressed),
+              ),
             ),
           ],
         ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'nine_key_keyboard.dart';
+import 'cangjie_dictionary.dart';
 
 void main() {
   runApp(const MyApp());
@@ -54,69 +56,76 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  int? _lastKeyPressed;
+  // Input buffer for storing the sequence of key presses (as key codes A-I)
+  final List<String> _inputBuffer = [];
+  List<String> _candidates = [];
 
-  void _incrementCounter() {
+  // Map index (0-8) to key code (A-I)
+  static const List<String> keyCodes = ['A','B','C','D','E','F','G','H','I'];
+
+  void _handleKeyPressed(int index) {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      _lastKeyPressed = index + 1;
+      // Add key code to buffer
+      _inputBuffer.add(keyCodes[index]);
+      // Build current code string
+      final code = _inputBuffer.join();
+      // Lookup candidates
+      _candidates = cangjieDictionary[code] ?? [];
+    });
+  }
+
+  void _handleBackspace() {
+    setState(() {
+      if (_inputBuffer.isNotEmpty) {
+        _inputBuffer.removeLast();
+        final code = _inputBuffer.join();
+        _candidates = cangjieDictionary[code] ?? [];
+      }
+    });
+  }
+
+  void _handleClear() {
+    setState(() {
+      _inputBuffer.clear();
+      _candidates = [];
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const Text('Hello World', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text('Input buffer: ${_inputBuffer.join(" ")}', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(onPressed: _handleBackspace, child: const Text('Backspace')),
+                const SizedBox(width: 8),
+                ElevatedButton(onPressed: _handleClear, child: const Text('Clear')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('Candidates: ${_candidates.isNotEmpty ? _candidates.join(", ") : "(none)"}', style: const TextStyle(fontSize: 18, color: Colors.blue)),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: NineKeyKeyboard(onKeyPressed: _handleKeyPressed),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'main.dart' show KeyboardMode;
 
 /// Mapping of nine keys to their corresponding Cangjie radicals (字根)
 const Map<String, List<String>> nineKeyRadicalMap = {
@@ -15,70 +16,55 @@ const Map<String, List<String>> nineKeyRadicalMap = {
 
 class NineKeyKeyboard extends StatelessWidget {
   final void Function(int) onKeyPressed;
-  final bool numberMode;
-  final bool punctuationMode;
+  final KeyboardMode keyboardMode;
+  final VoidCallback? onToggleMode;
 
-  const NineKeyKeyboard({Key? key, required this.onKeyPressed, this.numberMode = false, this.punctuationMode = false}) : super(key: key);
+  const NineKeyKeyboard({Key? key, required this.onKeyPressed, required this.keyboardMode, this.onToggleMode}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final List<String> punctuationKeys = ['，', '。', '！', '？', '、', '；', '：', '「', '」', '（', '）', '…', '—', '《', '》', '．'];
-    final List<Map<String, String>> keys = punctuationMode
-        ? List.generate(16, (i) {
-            if (i < punctuationKeys.length) {
-              return {'main': punctuationKeys[i], 'sub': ''};
-            }
-            // Last row: number flag, backspace, space, back (instead of enter)
-            if (i == 12) return {'main': '123', 'sub': ''};
-            if (i == 13) return {'main': '⌫', 'sub': ''};
-            if (i == 14) return {'main': '空格', 'sub': ''};
-            if (i == 15) return {'main': '←', 'sub': ''};
-            return {'main': '', 'sub': ''};
-          })
-        : numberMode
-            ? [
-                {'main': '1', 'sub': ''},
-                {'main': '2', 'sub': ''},
-                {'main': '3', 'sub': ''},
-                {'main': '⌫', 'sub': ''},
-                {'main': '4', 'sub': ''},
-                {'main': '5', 'sub': ''},
-                {'main': '6', 'sub': ''},
-                {'main': '重輸', 'sub': ''}, // Clear (disabled in number mode)
-                {'main': '7', 'sub': ''},
-                {'main': '8', 'sub': ''},
-                {'main': '9', 'sub': ''},
-                {'main': '空格', 'sub': ''},
-                {'main': '123', 'sub': ''}, // Number flag (toggle)
-                {'main': '0', 'sub': ''},
-                {'main': '標點', 'sub': ''},
-                {'main': '↵', 'sub': ''},
-              ]
-            : [
-                {'main': '1', 'sub': ''},
-                {'main': '2', 'sub': 'ABC'},
-                {'main': '3', 'sub': 'DEF'},
-                {'main': '⌫', 'sub': ''}, // Backspace
-                {'main': '4', 'sub': 'GHI'},
-                {'main': '5', 'sub': 'JKL'},
-                {'main': '6', 'sub': 'MNO'},
-                {'main': '重輸', 'sub': ''}, // Clear
-                {'main': '7', 'sub': 'PQRS'},
-                {'main': '8', 'sub': 'TUV'},
-                {'main': '9', 'sub': 'WXYZ'},
-                {'main': '空格', 'sub': ''}, // Space bar
-                {'main': '123', 'sub': ''}, // Number flag
-                {'main': '0', 'sub': ''},
-                {'main': '標點', 'sub': ''}, // Punctuation
-                {'main': '↵', 'sub': ''}, // Enter
-              ];
+    final List<String> cangjieNumbers = ['一','口','木','水','火','土','竹','戈','十','大'];
+    final List<String> enLetters = ['A','B','C','D','E','F','G','H','I','J'];
+    final List<String> digits = ['1','2','3','4','5','6','7','8','9','0'];
+    final List<String> modeLabels = ['中', 'EN', '123'];
+    late final List<String> mainLabels;
+    switch (keyboardMode) {
+      case KeyboardMode.cangjie:
+        mainLabels = cangjieNumbers;
+        break;
+      case KeyboardMode.en:
+        mainLabels = enLetters;
+        break;
+      case KeyboardMode.digit:
+        mainLabels = digits;
+        break;
+    }
+    // 4x4 grid: 0-2,3; 4-6,7; 8-10,11; 12-14,15
+    final List<Map<String, dynamic>> keys = [
+      {'main': mainLabels[0]},
+      {'main': mainLabels[1]},
+      {'main': mainLabels[2]},
+      {'main': '⌫'},
+      {'main': mainLabels[3]},
+      {'main': mainLabels[4]},
+      {'main': mainLabels[5]},
+      {'main': '重輸'},
+      {'main': mainLabels[6]},
+      {'main': mainLabels[7]},
+      {'main': mainLabels[8]},
+      {'main': '空格'},
+      // Left bottom: mode button
+      {'main': modeLabels[keyboardMode.index]},
+      {'main': mainLabels[9]},
+      {'main': '標點'},
+      {'main': '↵'},
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
         double buttonHeight = constraints.maxHeight / 4;
         double buttonWidth = constraints.maxWidth / 4;
         double mainFontSize = buttonHeight * 0.32;
-        double subFontSize = buttonHeight * 0.16;
         return Column(
           children: List.generate(4, (row) {
             return Expanded(
@@ -90,9 +76,9 @@ class NineKeyKeyboard extends StatelessWidget {
                   bool isClear = key['main'] == '重輸';
                   bool isSpace = key['main'] == '空格';
                   bool isEnter = key['main'] == '↵';
-                  bool isNumberFlag = key['main'] == '123';
+                  bool isModeButton = (row == 3 && col == 0);
                   bool isPunctuation = key['main'] == '標點';
-                  bool isPlaceholder = key['main'] == '' && key['sub'] == '';
+                  bool isPlaceholder = key['main'] == '';
                   return Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(4.0),
@@ -107,16 +93,20 @@ class NineKeyKeyboard extends StatelessWidget {
                                           ? 'Space'
                                           : isEnter
                                               ? 'Enter'
-                                              : isNumberFlag
-                                                  ? 'Number flag'
+                                              : isModeButton
+                                                  ? 'Mode'
                                                   : isPunctuation
                                                       ? 'Punctuation'
                                                       : 'Key ${key['main']}',
                               button: true,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black87,
+                                  backgroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
+                                      ? Colors.blue
+                                      : Colors.white,
+                                  foregroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
+                                      ? Colors.white
+                                      : Colors.black87,
                                   elevation: 1,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -125,59 +115,31 @@ class NineKeyKeyboard extends StatelessWidget {
                                   padding: EdgeInsets.zero,
                                 ),
                                 onPressed: () {
-                                  if (punctuationMode) {
-                                    // Punctuation mode: 0-11 are punctuations, 12: number flag, 13: backspace, 14: space, 15: back
-                                    if (index < 12) {
-                                      onKeyPressed(index);
-                                    } else if (index == 12) {
-                                      onKeyPressed(-5); // Number flag
-                                    } else if (index == 13) {
-                                      onKeyPressed(-1); // Backspace
-                                    } else if (index == 14) {
-                                      onKeyPressed(-3); // Space
-                                    } else if (index == 15) {
-                                      onKeyPressed(-7); // Back button
-                                    } else {
-                                      onKeyPressed(-6); // Punctuation flag (toggle)
-                                    }
+                                  if (isModeButton && onToggleMode != null) {
+                                    onToggleMode!();
+                                  } else if (isBackspace) {
+                                    onKeyPressed(-1); // Backspace
+                                  } else if (isClear) {
+                                    onKeyPressed(-2); // Clear
+                                  } else if (isSpace) {
+                                    onKeyPressed(-3); // Space
+                                  } else if (isEnter) {
+                                    onKeyPressed(-4); // Enter
+                                  } else if (isPunctuation) {
+                                    onKeyPressed(-6); // Punctuation
                                   } else {
-                                    if (isBackspace) {
-                                      onKeyPressed(-1); // Backspace
-                                    } else if (isClear) {
-                                      onKeyPressed(-2); // Clear
-                                    } else if (isSpace) {
-                                      onKeyPressed(-3); // Space
-                                    } else if (isEnter) {
-                                      onKeyPressed(-4); // Enter
-                                    } else if (isNumberFlag) {
-                                      onKeyPressed(-5); // Number flag
-                                    } else if (isPunctuation) {
-                                      onKeyPressed(-6); // Punctuation
-                                    } else {
-                                      onKeyPressed(index);
-                                    }
+                                    onKeyPressed(index);
                                   }
                                 },
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      key['main']!,
-                                      style: TextStyle(
-                                        fontSize: mainFontSize,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
+                                child: Center(
+                                  child: Text(
+                                    key['main']!,
+                                    style: TextStyle(
+                                      fontSize: mainFontSize,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.black87,
                                     ),
-                                    if (key['sub']!.isNotEmpty)
-                                      Text(
-                                        key['sub']!,
-                                        style: TextStyle(
-                                          fontSize: subFontSize,
-                                          color: Colors.grey[700],
-                                        ),
-                                      ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),

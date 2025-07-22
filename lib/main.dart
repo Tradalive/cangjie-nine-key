@@ -60,12 +60,64 @@ class _MyHomePageState extends State<MyHomePage> {
   // Input buffer for storing the sequence of key presses (as key codes A-I)
   final List<String> _inputBuffer = [];
   List<String> _candidates = [];
+  String _committedText = '';
+  bool _numberMode = false;
+  bool _punctuationMode = false;
 
   // Map index (0-8) to key code (A-I)
   static const List<String> keyCodes = ['A','B','C','D','E','F','G','H','I'];
+  static const List<String> numberKeys = ['1','2','3','4','5','6','7','8','9','0'];
+  static const List<String> punctuationKeys = ['，', '。', '！', '？', '、', '；', '：', '「', '」', '（', '）', '…', '—', '《', '》', '．'];
 
-  void _handleKeyPressed(int index) {
+  void _handleKeyPressed(int index) async {
     setState(() {
+      if (_punctuationMode) {
+        // In punctuation mode, commit punctuation directly
+        if (index >= 0 && index < punctuationKeys.length) {
+          _committedText += punctuationKeys[index];
+        } else if (index == -6) {
+          // Toggle back to normal mode
+          _punctuationMode = false;
+        } else if (index == -7) {
+          // Back button
+          _punctuationMode = false;
+        } else if (index == -1) {
+          // Backspace
+          if (_committedText.isNotEmpty) {
+            _committedText = _committedText.substring(0, _committedText.length - 1);
+          }
+        } else if (index == -3) {
+          _committedText += ' ';
+        } else if (index == -4) {
+          _committedText += '\n';
+        } else if (index == -5) {
+          _numberMode = true;
+          _punctuationMode = false;
+        }
+        return;
+      }
+      if (_numberMode) {
+        // In number mode, commit numbers directly
+        if (index >= 0 && index < 10) {
+          _committedText += numberKeys[index];
+        } else if (index == -5) {
+          // Toggle back to normal mode
+          _numberMode = false;
+        } else if (index == -1) {
+          // Backspace
+          if (_committedText.isNotEmpty) {
+            _committedText = _committedText.substring(0, _committedText.length - 1);
+          }
+        } else if (index == -3) {
+          _committedText += ' ';
+        } else if (index == -4) {
+          _committedText += '\n';
+        } else if (index == -6) {
+          _punctuationMode = true;
+          _numberMode = false;
+        }
+        return;
+      }
       if (index == -1) {
         // Backspace
         if (_inputBuffer.isNotEmpty) {
@@ -77,6 +129,20 @@ class _MyHomePageState extends State<MyHomePage> {
         // Clear (重輸)
         _inputBuffer.clear();
         _candidates = [];
+      } else if (index == -3) {
+        // Space
+        _committedText += ' ';
+      } else if (index == -4) {
+        // Enter
+        _committedText += '\n';
+      } else if (index == -5) {
+        // Number flag: switch to number mode
+        _numberMode = true;
+        _punctuationMode = false;
+      } else if (index == -6) {
+        // Punctuation: switch to punctuation mode
+        _punctuationMode = true;
+        _numberMode = false;
       } else {
         // Add key code to buffer (for 0-8, mapping to A-I)
         if (index >= 0 && index < keyCodes.length) {
@@ -87,6 +153,33 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       }
     });
+  }
+
+  void _handleCandidateSelected(String candidate) {
+    setState(() {
+      _committedText += candidate;
+      _inputBuffer.clear();
+      _candidates = [];
+    });
+  }
+
+  void _showPunctuationDialog() async {
+    final List<String> punctuations = ['，', '。', '！', '？', '、', '；', '：', '「', '」', '（', '）'];
+    String? selected = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('選擇標點'),
+        children: punctuations.map((p) => SimpleDialogOption(
+          child: Text(p, style: const TextStyle(fontSize: 24)),
+          onPressed: () => Navigator.pop(context, p),
+        )).toList(),
+      ),
+    );
+    if (selected != null) {
+      setState(() {
+        _committedText += selected;
+      });
+    }
   }
 
   void _handleBackspace() {
@@ -117,17 +210,38 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('Hello World', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            Text('Input buffer: ${_inputBuffer.join(" ")}', style: const TextStyle(fontSize: 18)),
+            // Removed Hello World
+            // const Text('Hello World', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            // const SizedBox(height: 16),
+            Text('已輸入: $_committedText', style: const TextStyle(fontSize: 20, color: Colors.black)),
             const SizedBox(height: 8),
-            Text('Candidates: ${_candidates.isNotEmpty ? _candidates.join(", ") : "(none)"}', style: const TextStyle(fontSize: 18, color: Colors.blue)),
+            if (!_numberMode && !_punctuationMode)
+              Text('Input buffer:  ${_inputBuffer.join(" ")}', style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 8),
+            if (!_numberMode && !_punctuationMode)
+              _candidates.isNotEmpty
+                  ? Wrap(
+                      spacing: 8,
+                      children: _candidates.map((c) => ElevatedButton(
+                        onPressed: () => _handleCandidateSelected(c),
+                        child: Text(c, style: const TextStyle(fontSize: 20)),
+                      )).toList(),
+                    )
+                  : const Text('Candidates: (none)', style: TextStyle(fontSize: 18, color: Colors.blue)),
+            if (_numberMode)
+              const Text('數字輸入模式', style: TextStyle(fontSize: 18, color: Colors.blue)),
+            if (_punctuationMode)
+              const Text('標點輸入模式', style: TextStyle(fontSize: 18, color: Colors.blue)),
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: SizedBox(
                 height: 360, // Ensures keyboard has a non-zero height
-                child: NineKeyKeyboard(onKeyPressed: _handleKeyPressed),
+                child: NineKeyKeyboard(
+                  onKeyPressed: _handleKeyPressed,
+                  numberMode: _numberMode,
+                  punctuationMode: _punctuationMode,
+                ),
               ),
             ),
           ],

@@ -19,13 +19,24 @@ class NineKeyKeyboard extends StatelessWidget {
   final KeyboardMode keyboardMode;
   final VoidCallback? onToggleMode;
   final VoidCallback? onExit;
+  final bool isEnUpperCase;
+  final VoidCallback? onEnCaseToggle;
 
-  const NineKeyKeyboard({Key? key, required this.onKeyPressed, required this.keyboardMode, this.onToggleMode, this.onExit}) : super(key: key);
+  const NineKeyKeyboard({
+    Key? key,
+    required this.onKeyPressed,
+    required this.keyboardMode,
+    this.onToggleMode,
+    this.onExit,
+    this.isEnUpperCase = true,
+    this.onEnCaseToggle,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final List<String> cangjieNumbers = ['一','口','木','水','火','土','竹','戈','十','大'];
-    final List<String> enLetters = ['A','B','C','D','E','F','G','H','I','J'];
+    final List<String> cangjieNumbers = ['日月金','木水火','土竹戈','十大中','一弓人','心手口','尸廿','山女', '田卜', '難'];
+    final List<String> enLettersUpper = ['ABC', 'DEF','GHI','JKL','MNO','PQR','STU','VWX','YZ', '^A'];
+    final List<String> enLettersLower = ['abc', 'def','ghi','jkl','mno','pqr','stu','vwx','yz', '^a'];
     final List<String> digits = ['1','2','3','4','5','6','7','8','9','0'];
     final List<String> modeLabels = ['中', 'EN', '123'];
     late final List<String> mainLabels;
@@ -34,7 +45,7 @@ class NineKeyKeyboard extends StatelessWidget {
         mainLabels = cangjieNumbers;
         break;
       case KeyboardMode.en:
-        mainLabels = enLetters;
+        mainLabels = isEnUpperCase ? enLettersUpper : enLettersLower;
         break;
       case KeyboardMode.digit:
         mainLabels = digits;
@@ -82,6 +93,7 @@ class NineKeyKeyboard extends StatelessWidget {
                     bool isModeButton = (row == 3 && col == 0);
                     bool isPunctuation = key['main'] == '標點';
                     bool isPlaceholder = key['main'] == '';
+                    bool isEnCaseToggle = keyboardMode == KeyboardMode.en && (mainLabels.length > 9 && key['main'] == mainLabels[9]);
                     return Expanded(
                       child: Padding(
                         padding: const EdgeInsets.all(4.0),
@@ -100,7 +112,9 @@ class NineKeyKeyboard extends StatelessWidget {
                                                     ? 'Mode'
                                                     : isPunctuation
                                                         ? 'Punctuation'
-                                                        : 'Key ${key['main']}',
+                                                        : isEnCaseToggle
+                                                            ? 'Case Toggle'
+                                                            : 'Key ${key['main']}',
                                 button: true,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
@@ -118,7 +132,9 @@ class NineKeyKeyboard extends StatelessWidget {
                                     padding: EdgeInsets.zero,
                                   ),
                                   onPressed: () {
-                                    if (isModeButton && onToggleMode != null) {
+                                    if (isEnCaseToggle && onEnCaseToggle != null) {
+                                      onEnCaseToggle!();
+                                    } else if (isModeButton && onToggleMode != null) {
                                       onToggleMode!();
                                     } else if (isBackspace) {
                                       onKeyPressed(-1); // Backspace

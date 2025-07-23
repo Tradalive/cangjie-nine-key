@@ -70,6 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
   KeyboardMode _keyboardMode = KeyboardMode.cangjie;
   String? _lastCommittedChar; // For phrase suggestion
   List<String> _recentMemory = [];
+  bool _isEnUpperCase = true;
 
   static const String _fakeFreqKey = 'fake_freq';
   static const String _recentMemoryKey = 'recent_memory';
@@ -292,6 +293,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _toggleEnCase() {
+    setState(() {
+      _isEnUpperCase = !_isEnUpperCase;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -400,6 +407,8 @@ class _MyHomePageState extends State<MyHomePage> {
                             const SnackBar(content: Text('Keyboard exited!')),
                           );
                         },
+                        isEnUpperCase: _isEnUpperCase,
+                        onEnCaseToggle: _keyboardMode == KeyboardMode.en ? _toggleEnCase : null,
                       ),
                     ),
                   ],

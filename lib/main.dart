@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'nine_key_keyboard.dart';
 import 'cangjie_dictionary.dart';
+import 'fake_freq.dart';
 
 void main() {
   runApp(const MyApp());
@@ -86,20 +87,19 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       // Special keys
       if (index == -1) {
-        switch (_keyboardMode) {
-          case KeyboardMode.cangjie:
-            if (_inputBuffer.isNotEmpty) {
-              _inputBuffer.removeLast();
-              final code = _inputBuffer.join();
-              _candidates = cangjieDictionary[code] ?? [];
-            }
-            break;
-          case KeyboardMode.en:
-          case KeyboardMode.digit:
-            if (_committedText.isNotEmpty) {
-              _committedText = _committedText.substring(0, _committedText.length - 1);
-            }
-            break;
+        if (_keyboardMode == KeyboardMode.cangjie) {
+          if (_inputBuffer.isNotEmpty) {
+            _inputBuffer.removeLast();
+            final code = _inputBuffer.join();
+            _candidates = cangjieDictionary[code] ?? [];
+          }
+          else if (_committedText.isNotEmpty) {
+            _committedText = _committedText.substring(0, _committedText.length - 1);
+          }
+        } else {
+          if (_committedText.isNotEmpty) {
+            _committedText = _committedText.substring(0, _committedText.length - 1);
+          }
         }
         return;
       } else if (index == -2) {
@@ -139,7 +139,8 @@ class _MyHomePageState extends State<MyHomePage> {
           if (logicalKeyIndex >= 0 && logicalKeyIndex < cangjieCodes.length) {
             _inputBuffer.add(cangjieCodes[logicalKeyIndex]);
             final code = _inputBuffer.join();
-            _candidates = cangjieDictionary[code] ?? [];
+            _candidates = List<String>.from(cangjieDictionary[code] ?? []);
+            _candidates.sort((a, b) => getFakeFrequency(b).compareTo(getFakeFrequency(a)));
           }
           break;
         case KeyboardMode.en:
@@ -211,50 +212,98 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            // Removed Hello World
-            // const Text('Hello World', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            // const SizedBox(height: 16),
-            Text('已輸入: $_committedText', style: const TextStyle(fontSize: 20, color: Colors.black)),
-            const SizedBox(height: 8),
-            if (_keyboardMode == KeyboardMode.cangjie)
-              Text('Input buffer:  ${_inputBuffer.join(" ")}', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            _candidates.isNotEmpty
-                ? SizedBox(
-                    height: 48,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _candidates.length,
-                      separatorBuilder: (context, idx) => const SizedBox(width: 8),
-                      itemBuilder: (context, idx) => ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                          elevation: 1,
-                          side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
+            // Debug info: print to console instead of UI
+            (() {
+              // ignore: avoid_print
+              print('已輸入: $_committedText');
+              if (_keyboardMode == KeyboardMode.cangjie) {
+                // ignore: avoid_print
+                print('Input buffer:  ${_inputBuffer.join(" ")}');
+              }
+              return const SizedBox.shrink();
+            })(),
+            const SizedBox(height: 12),
+            Card(
+              elevation: 4,
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  children: [
+                    // Close button and candidate list row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Candidate buttons (take most of the row, leave space for close button)
+                        Expanded(
+                          flex: 8,
+                          child: _candidates.isNotEmpty
+                              ? SizedBox(
+                                  height: 48,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: _candidates.length,
+                                    separatorBuilder: (context, idx) => const SizedBox(width: 8),
+                                    itemBuilder: (context, idx) => ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        backgroundColor: Colors.white,
+                                        foregroundColor: Colors.black87,
+                                        elevation: 1,
+                                        side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
+                                      ),
+                                      onPressed: () => _handleCandidateSelected(_candidates[idx]),
+                                      child: Text(_candidates[idx], style: const TextStyle(fontSize: 20)),
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox(height: 48),
                         ),
-                        onPressed: () => _handleCandidateSelected(_candidates[idx]),
-                        child: Text(_candidates[idx], style: const TextStyle(fontSize: 20)),
+                        // Close button (right-aligned)
+                        SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                elevation: 1,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Keyboard exited!')),
+                                );
+                              },
+                              child: const Icon(Icons.close),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 360,
+                      child: NineKeyKeyboard(
+                        onKeyPressed: _handleKeyPressed,
+                        keyboardMode: _keyboardMode,
+                        onToggleMode: _toggleMode,
+                        onExit: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Keyboard exited!')),
+                          );
+                        },
                       ),
                     ),
-                  )
-                : const Text('Candidates: (none)', style: TextStyle(fontSize: 18, color: Colors.blue)),
-            if (_keyboardMode == KeyboardMode.digit)
-              const Text('數字輸入模式', style: TextStyle(fontSize: 18, color: Colors.blue)),
-            if (_keyboardMode == KeyboardMode.en)
-              const Text('英文輸入模式', style: TextStyle(fontSize: 18, color: Colors.blue)),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                height: 360, // Ensures keyboard has a non-zero height
-                child: NineKeyKeyboard(
-                  onKeyPressed: _handleKeyPressed,
-                  keyboardMode: _keyboardMode,
-                  onToggleMode: _toggleMode,
+                  ],
                 ),
               ),
             ),

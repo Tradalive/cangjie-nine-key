@@ -18,8 +18,9 @@ class NineKeyKeyboard extends StatelessWidget {
   final void Function(int) onKeyPressed;
   final KeyboardMode keyboardMode;
   final VoidCallback? onToggleMode;
+  final VoidCallback? onExit;
 
-  const NineKeyKeyboard({Key? key, required this.onKeyPressed, required this.keyboardMode, this.onToggleMode}) : super(key: key);
+  const NineKeyKeyboard({Key? key, required this.onKeyPressed, required this.keyboardMode, this.onToggleMode, this.onExit}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +40,7 @@ class NineKeyKeyboard extends StatelessWidget {
         mainLabels = digits;
         break;
     }
+
     // 4x4 grid: 0-2,3; 4-6,7; 8-10,11; 12-14,15
     final List<Map<String, dynamic>> keys = [
       {'main': mainLabels[0]},
@@ -66,89 +68,91 @@ class NineKeyKeyboard extends StatelessWidget {
         double buttonWidth = constraints.maxWidth / 4;
         double mainFontSize = buttonHeight * 0.32;
         return Column(
-          children: List.generate(4, (row) {
-            return Expanded(
-              child: Row(
-                children: List.generate(4, (col) {
-                  int index = row * 4 + col;
-                  final key = keys[index];
-                  bool isBackspace = key['main'] == '⌫';
-                  bool isClear = key['main'] == '重輸';
-                  bool isSpace = key['main'] == '空格';
-                  bool isEnter = key['main'] == '↵';
-                  bool isModeButton = (row == 3 && col == 0);
-                  bool isPunctuation = key['main'] == '標點';
-                  bool isPlaceholder = key['main'] == '';
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(4.0),
-                      child: isPlaceholder
-                          ? const SizedBox.shrink()
-                          : Semantics(
-                              label: isBackspace
-                                  ? 'Backspace'
-                                  : isClear
-                                      ? 'Clear'
-                                      : isSpace
-                                          ? 'Space'
-                                          : isEnter
-                                              ? 'Enter'
-                                              : isModeButton
-                                                  ? 'Mode'
-                                                  : isPunctuation
-                                                      ? 'Punctuation'
-                                                      : 'Key ${key['main']}',
-                              button: true,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
-                                      ? Colors.blue
-                                      : Colors.white,
-                                  foregroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
-                                      ? Colors.white
-                                      : Colors.black87,
-                                  elevation: 1,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
+          children: [
+            ...List.generate(4, (row) {
+              return Expanded(
+                child: Row(
+                  children: List.generate(4, (col) {
+                    int index = row * 4 + col;
+                    final key = keys[index];
+                    bool isBackspace = key['main'] == '⌫';
+                    bool isClear = key['main'] == '重輸';
+                    bool isSpace = key['main'] == '空格';
+                    bool isEnter = key['main'] == '↵';
+                    bool isModeButton = (row == 3 && col == 0);
+                    bool isPunctuation = key['main'] == '標點';
+                    bool isPlaceholder = key['main'] == '';
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(4.0),
+                        child: isPlaceholder
+                            ? const SizedBox.shrink()
+                            : Semantics(
+                                label: isBackspace
+                                    ? 'Backspace'
+                                    : isClear
+                                        ? 'Clear'
+                                        : isSpace
+                                            ? 'Space'
+                                            : isEnter
+                                                ? 'Enter'
+                                                : isModeButton
+                                                    ? 'Mode'
+                                                    : isPunctuation
+                                                        ? 'Punctuation'
+                                                        : 'Key ${key['main']}',
+                                button: true,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
+                                        ? Colors.blue
+                                        : Colors.white,
+                                    foregroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
+                                        ? Colors.white
+                                        : Colors.black87,
+                                    elevation: 1,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
+                                    ),
+                                    padding: EdgeInsets.zero,
                                   ),
-                                  padding: EdgeInsets.zero,
-                                ),
-                                onPressed: () {
-                                  if (isModeButton && onToggleMode != null) {
-                                    onToggleMode!();
-                                  } else if (isBackspace) {
-                                    onKeyPressed(-1); // Backspace
-                                  } else if (isClear) {
-                                    onKeyPressed(-2); // Clear
-                                  } else if (isSpace) {
-                                    onKeyPressed(-3); // Space
-                                  } else if (isEnter) {
-                                    onKeyPressed(-4); // Enter
-                                  } else if (isPunctuation) {
-                                    onKeyPressed(-6); // Punctuation
-                                  } else {
-                                    onKeyPressed(index);
-                                  }
-                                },
-                                child: Center(
-                                  child: Text(
-                                    key['main']!,
-                                    style: TextStyle(
-                                      fontSize: mainFontSize,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
+                                  onPressed: () {
+                                    if (isModeButton && onToggleMode != null) {
+                                      onToggleMode!();
+                                    } else if (isBackspace) {
+                                      onKeyPressed(-1); // Backspace
+                                    } else if (isClear) {
+                                      onKeyPressed(-2); // Clear
+                                    } else if (isSpace) {
+                                      onKeyPressed(-3); // Space
+                                    } else if (isEnter) {
+                                      onKeyPressed(-4); // Enter
+                                    } else if (isPunctuation) {
+                                      onKeyPressed(-6); // Punctuation
+                                    } else {
+                                      onKeyPressed(index);
+                                    }
+                                  },
+                                  child: Center(
+                                    child: Text(
+                                      key['main']!,
+                                      style: TextStyle(
+                                        fontSize: mainFontSize,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                    ),
-                  );
-                }),
-              ),
-            );
-          }),
+                      ),
+                    );
+                  }),
+                ),
+              );
+            }),
+          ],
         );
       },
     );

@@ -1,4 +1,5 @@
 // lib/fake_freq.dart
+import 'dart:convert';
 
 final Map<String, int> _fakeFreq = {
   '一': 1000,
@@ -27,4 +28,18 @@ int getFakeFrequency(String word) {
 /// Increment frequency for a word (for dynamic learning)
 void incrementFakeFrequency(String word) {
   _fakeFreq[word] = (_fakeFreq[word] ?? 100) + 1;
+}
+
+/// Serialize _fakeFreq to JSON string
+String serializeFakeFreq() {
+  return jsonEncode(_fakeFreq);
+}
+
+/// Load _fakeFreq from JSON string
+void deserializeFakeFreq(String jsonStr) {
+  final Map<String, dynamic> map = jsonDecode(jsonStr);
+  _fakeFreq.clear();
+  map.forEach((k, v) {
+    _fakeFreq[k] = v as int;
+  });
 } 

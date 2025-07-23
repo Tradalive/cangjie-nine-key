@@ -1,90 +1,62 @@
 ### 🍎 App 名稱 **九倉**
 
-### 🧩 功能模組設計
+### 🧩 功能模組現狀
 
 #### 1️⃣ 九鍵輸入介面  
-- 🟦 九個按鍵，每鍵對應一組字根（可參考你先前嘅 Markdown 排版）
-- 🅰️ 每鍵點擊可顯示字根提示動畫，幫助學習
+- 🟦 九個按鍵，每鍵對應一組字根
 - 🔁 支援連續輸入、刪除、候選字選擇
+- 🕹️ 進階手勢操作（規劃中）
 
-#### 2️⃣ 倉頡碼拆解輔助  
-- 🔍 用戶可以查詢任何漢字嘅拆碼過程
-- 👀 拆碼動畫演示（每個字根閃爍顯示）
+#### 2️⃣ 候選字/詞排序邏輯  
+- 🧠 使用頻率分析（已支援 fake 頻率動態學習）
+- 💾 本地持久化 fake 頻率與最近輸入記憶（規劃中）
+- 🕓 最近輸入記憶、語境預測（規劃中）
 
-#### 3️⃣ 候選字排序邏輯  
-- 🧠 使用頻率分析 + 語境預測  
-- 🕓 最近輸入字記憶、手勢優先
-
-#### 4️⃣ 教學與挑戰模式  
-- 📚 新手教學：由基本字根開始、互動練習關卡  
-- 🎮 「倉頡挑戰賽」：限時輸入指定詞語，提升熟練度  
-- 🏆 排行榜與進度成就
+#### 3️⃣ 教學與挑戰模式  
+- 📚 新手教學、挑戰賽、成就系統（規劃中）
 
 ---
 
-### 🎨 視覺風格構想
-
-| 元素 | 設計方向 |
-|------|----------|
-| 主色調 | 中式墨黑＋簡潔白底（亦可選擇古風或科技感） |
-| 字型 | 粵字體或金萱體，兼顧美感與識別性 |
-| 動畫 | 每次點擊鍵位有波紋動畫、字根閃爍提示 |
-
----
-
-### 📦 技術架構建議
+### 📦 技術現狀
 
 | 模組 | 技術方向 |
 |------|-----------|
-| 前端 | SwiftUI（原生 iOS）、或 React Native |
-| 後端 | Firebase／Node.js（儲存詞頻與使用紀錄） |
-| 倉頡資料庫 | 自建字根映射表、或引用開源倉頡碼庫 |
-| 輸入引擎 | 拆碼邏輯 + 候選字排序演算法 |
+| 前端 | Flutter（已實作） |
+| 後端 | Firebase／Node.js（未來規劃） |
+| 倉頡資料庫 | 自建字根映射表 |
+| 輸入引擎 | 倉頡拆碼、fake 頻率排序 |
+| 本地資料 | fake 頻率與最近輸入記憶持久化（規劃中） |
 
 ---
 
-### 🍎 App Name :  **"NineCang"** 
+### 🍎 App Name :  **\"NineCang\"**
 
-### 🧩 Feature Modules
+### 🧩 Feature Modules (Current Status)
 
 #### 1️⃣ Nine-Key Input Interface  
-- 🟦 Nine keys, each mapped to a group of radicals (refer to your previous Markdown layout)
-- 🅰️ Tap any key to show radical hint animations for learning support
+- 🟦 Nine keys, each mapped to a group of radicals
 - 🔁 Supports continuous input, deletion, and candidate selection
+- 🕹️ Advanced gesture support (planned)
 
-#### 2️⃣ Cangjie Code Decomposition Assistant  
-- 🔍 Users can look up the decomposition process for any Chinese character
-- 👀 Animated demonstration of decomposition (each radical flashes in sequence)
+#### 2️⃣ Candidate Character/Word Sorting Logic  
+- 🧠 Frequency analysis (dynamic fake frequency supported)
+- 💾 Local persistence of fake frequency and recent input memory (planned)
+- 🕓 Recent input memory, context prediction (planned)
 
-#### 3️⃣ Candidate Character Sorting Logic  
-- 🧠 Frequency analysis + context prediction  
-- 🕓 Recent input memory and gesture prioritization
-
-#### 4️⃣ Tutorial & Challenge Modes  
-- 📚 Beginner tutorial: start from basic radicals, with interactive practice levels  
-- 🎮 "Cangjie Challenge": input given words within a time limit to boost proficiency  
-- 🏆 Leaderboards and achievement tracking
+#### 3️⃣ Tutorial & Challenge Modes  
+- 📚 Beginner tutorial, challenge, achievements (planned)
 
 ---
 
-### 🎨 Visual Style Concepts
-
-| Element | Design Direction |
-|---------|------------------|
-| Main Color | Classic Chinese ink black + clean white background (optionally vintage or tech style) |
-| Font | Cantonese or Jin Xuan font, balancing aesthetics and readability |
-| Animation | Ripple effect on key tap, radical hint flashing |
-
----
-
-### 📦 Technical Architecture Suggestions
+### 📦 Technical Status
 
 | Module | Technology Direction |
 |--------|---------------------|
-| Frontend | SwiftUI (native iOS), or React Native |
-| Backend | Firebase/Node.js (for storing word frequency and usage records) |
-| Cangjie Database | Custom radical mapping table, or open-source Cangjie code library |
-| Input Engine | Decomposition logic + candidate sorting algorithm |
+| Frontend | Flutter (implemented) |
+| Backend | Firebase/Node.js (future) |
+| Cangjie Database | Custom radical mapping table |
+| Input Engine | Cangjie decomposition, fake frequency sorting |
+| Local Data | Local persistence of fake frequency and recent input memory (planned) |
 
 ---
 
@@ -95,11 +67,6 @@ A new Flutter project.
 ## Getting Started
 
 This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,

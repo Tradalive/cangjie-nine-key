@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'nine_key_keyboard.dart';
 import 'cangjie_dictionary.dart';
 import 'fake_freq.dart';
-import 'fake_freq.dart' show incrementFakeFrequency;
+import 'fake_freq.dart' show incrementFakeFrequency, serializeFakeFreq, deserializeFakeFreq;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'phrase_dictionary.dart';
 
 void main() {
@@ -68,6 +69,35 @@ class _MyHomePageState extends State<MyHomePage> {
   String _committedText = '';
   KeyboardMode _keyboardMode = KeyboardMode.cangjie;
   String? _lastCommittedChar; // For phrase suggestion
+  List<String> _recentMemory = [];
+
+  static const String _fakeFreqKey = 'fake_freq';
+  static const String _recentMemoryKey = 'recent_memory';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPersistence();
+  }
+
+  Future<void> _loadPersistence() async {
+    final prefs = await SharedPreferences.getInstance();
+    final fakeFreqJson = prefs.getString(_fakeFreqKey);
+    if (fakeFreqJson != null) {
+      deserializeFakeFreq(fakeFreqJson);
+    }
+    final recent = prefs.getStringList(_recentMemoryKey);
+    if (recent != null) {
+      _recentMemory = List<String>.from(recent);
+    }
+    setState(() {});
+  }
+
+  Future<void> _savePersistence() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_fakeFreqKey, serializeFakeFreq());
+    await prefs.setStringList(_recentMemoryKey, _recentMemory);
+  }
 
   // Map index (0-9) to key code (A-Y)
   static const List<String> cangjieCodes = ['A','B','C','D','E','F','G','H','I','J'];
@@ -197,6 +227,7 @@ class _MyHomePageState extends State<MyHomePage> {
         for (var char in phrase.runes) {
           incrementFakeFrequency(String.fromCharCode(char));
         }
+        _addToRecentMemory(phrase);
         _lastCommittedChar = null;
         _inputBuffer.clear();
         _candidates = [];
@@ -204,12 +235,25 @@ class _MyHomePageState extends State<MyHomePage> {
         // 單字被選中，暫存該字以便配詞
         _committedText += candidate;
         incrementFakeFrequency(candidate);
+        _addToRecentMemory(candidate);
         _lastCommittedChar = candidate;
         _inputBuffer.clear();
         // 產生以此字開頭的詞語候選
         _candidates = _getCandidatesWithPhrases('');
       }
+      _savePersistence().catchError((e) {
+        // 可以 log 或顯示錯誤提示
+        print('Persistence error: $e');
+      });
     });
+  }
+
+  void _addToRecentMemory(String text) {
+    _recentMemory.remove(text);
+    _recentMemory.insert(0, text);
+    if (_recentMemory.length > 10) {
+      _recentMemory = _recentMemory.sublist(0, 10);
+    }
   }
 
   void _showPunctuationDialog() async {

@@ -22,4 +22,9 @@ final Map<String, int> _fakeFreq = {
 
 int getFakeFrequency(String word) {
   return _fakeFreq[word] ?? 100;
+}
+
+/// Increment frequency for a word (for dynamic learning)
+void incrementFakeFrequency(String word) {
+  _fakeFreq[word] = (_fakeFreq[word] ?? 100) + 1;
 } 

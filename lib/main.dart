@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'nine_key_keyboard.dart';
 import 'cangjie_dictionary.dart';
 import 'fake_freq.dart';
+import 'fake_freq.dart' show incrementFakeFrequency;
+import 'phrase_dictionary.dart';
 
 void main() {
   runApp(const MyApp());
@@ -65,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String> _candidates = [];
   String _committedText = '';
   KeyboardMode _keyboardMode = KeyboardMode.cangjie;
+  String? _lastCommittedChar; // For phrase suggestion
 
   // Map index (0-9) to key code (A-Y)
   static const List<String> cangjieCodes = ['A','B','C','D','E','F','G','H','I','J'];
@@ -91,7 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_inputBuffer.isNotEmpty) {
             _inputBuffer.removeLast();
             final code = _inputBuffer.join();
-            _candidates = cangjieDictionary[code] ?? [];
+            _candidates = _getCandidatesWithPhrases(code);
           }
           else if (_committedText.isNotEmpty) {
             _committedText = _committedText.substring(0, _committedText.length - 1);
@@ -101,6 +104,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _committedText = _committedText.substring(0, _committedText.length - 1);
           }
         }
+        _lastCommittedChar = null;
         return;
       } else if (index == -2) {
         // Clear (重輸)
@@ -108,25 +112,30 @@ class _MyHomePageState extends State<MyHomePage> {
           case KeyboardMode.cangjie:
             _inputBuffer.clear();
             _candidates = [];
+            _lastCommittedChar = null;
             break;
           case KeyboardMode.en:
           case KeyboardMode.digit:
             _committedText = '';
+            _lastCommittedChar = null;
             break;
         }
         return;
       } else if (index == -3) {
         // Space
         _committedText += ' ';
+        _lastCommittedChar = null;
         return;
       } else if (index == -4) {
         // Enter
         _committedText += '\n';
+        _lastCommittedChar = null;
         return;
       } else if (index == -6) {
         // Show punctuation candidates in the unified candidate view
         _inputBuffer.clear();
         _candidates = punctuationCandidates;
+        _lastCommittedChar = null;
         return;
       }
 
@@ -139,29 +148,67 @@ class _MyHomePageState extends State<MyHomePage> {
           if (logicalKeyIndex >= 0 && logicalKeyIndex < cangjieCodes.length) {
             _inputBuffer.add(cangjieCodes[logicalKeyIndex]);
             final code = _inputBuffer.join();
-            _candidates = List<String>.from(cangjieDictionary[code] ?? []);
-            _candidates.sort((a, b) => getFakeFrequency(b).compareTo(getFakeFrequency(a)));
+            _candidates = _getCandidatesWithPhrases(code);
           }
           break;
         case KeyboardMode.en:
           if (logicalKeyIndex >= 0 && logicalKeyIndex < enCodes.length) {
             _committedText += enCodes[logicalKeyIndex];
+            _lastCommittedChar = null;
           }
           break;
         case KeyboardMode.digit:
           if (logicalKeyIndex >= 0 && logicalKeyIndex < digitCodes.length) {
             _committedText += digitCodes[logicalKeyIndex];
+            _lastCommittedChar = null;
           }
           break;
       }
     });
   }
 
+  // Helper: get phrase and single-character candidates
+  List<String> _getCandidatesWithPhrases(String code) {
+    final List<String> candidates = [];
+    // 1. Phrase candidates (if any, after a character is committed)
+    if (_lastCommittedChar != null && phraseDictionary.containsKey(_lastCommittedChar!)) {
+      candidates.addAll(phraseDictionary[_lastCommittedChar!]!); // Only suffixes
+    }
+    // 2. Single-character candidates (from Cangjie code)
+    final singleChars = List<String>.from(cangjieDictionary[code] ?? []);
+    singleChars.sort((a, b) => getFakeFrequency(b).compareTo(getFakeFrequency(a)));
+    candidates.addAll(singleChars);
+    return candidates;
+  }
+
   void _handleCandidateSelected(String candidate) {
     setState(() {
-      _committedText += candidate;
-      _inputBuffer.clear();
-      _candidates = [];
+      // 判斷是否為詞語（由 lastCommittedChar 產生的候選）
+      final isPhrase = _lastCommittedChar != null && (phraseDictionary[_lastCommittedChar!]?.contains(candidate) ?? false);
+      if (isPhrase) {
+        // 用詞語取代最後一個單字，詞語為 lastCommittedChar + candidate
+        if (_committedText.isNotEmpty) {
+          _committedText = _committedText.substring(0, _committedText.length - _lastCommittedChar!.length);
+        }
+        final phrase = _lastCommittedChar! + candidate;
+        _committedText += phrase;
+        // 動態更新詞語和每個字的頻率
+        incrementFakeFrequency(phrase);
+        for (var char in phrase.runes) {
+          incrementFakeFrequency(String.fromCharCode(char));
+        }
+        _lastCommittedChar = null;
+        _inputBuffer.clear();
+        _candidates = [];
+      } else {
+        // 單字被選中，暫存該字以便配詞
+        _committedText += candidate;
+        incrementFakeFrequency(candidate);
+        _lastCommittedChar = candidate;
+        _inputBuffer.clear();
+        // 產生以此字開頭的詞語候選
+        _candidates = _getCandidatesWithPhrases('');
+      }
     });
   }
 
@@ -245,19 +292,27 @@ class _MyHomePageState extends State<MyHomePage> {
                                     scrollDirection: Axis.horizontal,
                                     itemCount: _candidates.length,
                                     separatorBuilder: (context, idx) => const SizedBox(width: 8),
-                                    itemBuilder: (context, idx) => ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(16),
+                                    itemBuilder: (context, idx) {
+                                      final candidate = _candidates[idx];
+                                      // Phrase candidates are those found in phraseDictionary for the current buffer
+                                      final isPhrase = _lastCommittedChar != null && (phraseDictionary[_lastCommittedChar!]?.contains(candidate) ?? false);
+                                      return ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          backgroundColor: isPhrase ? Colors.lightBlue[100] : Colors.white,
+                                          foregroundColor: Colors.black87,
+                                          elevation: 1,
+                                          side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
                                         ),
-                                        backgroundColor: Colors.white,
-                                        foregroundColor: Colors.black87,
-                                        elevation: 1,
-                                        side: const BorderSide(color: Color(0xFFCCCCCC), width: 1),
-                                      ),
-                                      onPressed: () => _handleCandidateSelected(_candidates[idx]),
-                                      child: Text(_candidates[idx], style: const TextStyle(fontSize: 20)),
-                                    ),
+                                        onPressed: () => _handleCandidateSelected(candidate),
+                                        child: Text(
+                                          isPhrase ? candidate : candidate,
+                                          style: const TextStyle(fontSize: 20),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 )
                               : const SizedBox(height: 48),

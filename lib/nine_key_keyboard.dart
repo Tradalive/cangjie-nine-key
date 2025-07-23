@@ -21,6 +21,8 @@ class NineKeyKeyboard extends StatelessWidget {
   final VoidCallback? onExit;
   final bool isEnUpperCase;
   final VoidCallback? onEnCaseToggle;
+  final VoidCallback? onBackspaceLongPress;
+  final void Function(double)? onHeightDrag;
 
   const NineKeyKeyboard({
     Key? key,
@@ -30,6 +32,8 @@ class NineKeyKeyboard extends StatelessWidget {
     this.onExit,
     this.isEnUpperCase = true,
     this.onEnCaseToggle,
+    this.onBackspaceLongPress,
+    this.onHeightDrag,
   }) : super(key: key);
 
   @override
@@ -80,6 +84,22 @@ class NineKeyKeyboard extends StatelessWidget {
         double mainFontSize = buttonHeight * 0.32;
         return Column(
           children: [
+            // Draggable emoji and divider
+            GestureDetector(
+              onVerticalDragUpdate: (details) {
+                if (onHeightDrag != null) onHeightDrag!(details.delta.dy);
+              },
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4, bottom: 2),
+                child: Center(
+                  child: Text(
+                    '≡',
+                    style: TextStyle(fontSize: 24, color: Colors.grey[700]),
+                  ),
+                ),
+              ),
+            ),
+            const Divider(height: 1, thickness: 1),
             ...List.generate(4, (row) {
               return Expanded(
                 child: Row(
@@ -119,7 +139,7 @@ class NineKeyKeyboard extends StatelessWidget {
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
-                                        ? Colors.blue
+                                        ? (index == 7 ? Colors.orange : Colors.blue)
                                         : Colors.white,
                                     foregroundColor: (index == 3 || index == 7 || index == 11 || index == 12 || index == 14 || index == 15)
                                         ? Colors.white
@@ -150,6 +170,9 @@ class NineKeyKeyboard extends StatelessWidget {
                                       onKeyPressed(index);
                                     }
                                   },
+                                  onLongPress: isBackspace && onBackspaceLongPress != null
+                                      ? onBackspaceLongPress
+                                      : null,
                                   child: Center(
                                     child: Text(
                                       key['main']!,

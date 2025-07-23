@@ -71,6 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String? _lastCommittedChar; // For phrase suggestion
   List<String> _recentMemory = [];
   bool _isEnUpperCase = true;
+  double _keyboardHeight = 360;
 
   static const String _fakeFreqKey = 'fake_freq';
   static const String _recentMemoryKey = 'recent_memory';
@@ -114,6 +115,9 @@ class _MyHomePageState extends State<MyHomePage> {
   void _toggleMode() {
     setState(() {
       _keyboardMode = KeyboardMode.values[(_keyboardMode.index + 1) % KeyboardMode.values.length];
+      _inputBuffer.clear();
+      _candidates = [];
+      _lastCommittedChar = null;
     });
   }
 
@@ -139,18 +143,9 @@ class _MyHomePageState extends State<MyHomePage> {
         return;
       } else if (index == -2) {
         // Clear (重輸)
-        switch (_keyboardMode) {
-          case KeyboardMode.cangjie:
-            _inputBuffer.clear();
-            _candidates = [];
-            _lastCommittedChar = null;
-            break;
-          case KeyboardMode.en:
-          case KeyboardMode.digit:
-            _committedText = '';
-            _lastCommittedChar = null;
-            break;
-        }
+        _inputBuffer.clear();
+        _candidates = [];
+        _lastCommittedChar = null;
         return;
       } else if (index == -3) {
         // Space
@@ -177,6 +172,17 @@ class _MyHomePageState extends State<MyHomePage> {
       switch (_keyboardMode) {
         case KeyboardMode.cangjie:
           if (logicalKeyIndex >= 0 && logicalKeyIndex < cangjieCodes.length) {
+            // If input buffer is empty, show radicals for this key for selection
+            if (_inputBuffer.isEmpty) {
+              // Map cangjieCodes[logicalKeyIndex] to radicals
+              String code = cangjieCodes[logicalKeyIndex];
+              List<String> radicals = nineKeyRadicalMap[code] ?? [];
+              if (radicals.isNotEmpty) {
+                _candidates = radicals;
+                _inputBuffer.add(code); // Mark which key is being selected
+                return;
+              }
+            }
             _inputBuffer.add(cangjieCodes[logicalKeyIndex]);
             final code = _inputBuffer.join();
             _candidates = _getCandidatesWithPhrases(code);
@@ -184,7 +190,21 @@ class _MyHomePageState extends State<MyHomePage> {
           break;
         case KeyboardMode.en:
           if (logicalKeyIndex >= 0 && logicalKeyIndex < enCodes.length) {
-            _committedText += enCodes[logicalKeyIndex];
+            // If input buffer is empty, show letter choices for this key
+            if (_inputBuffer.isEmpty) {
+              // Map logicalKeyIndex to enLettersUpper or enLettersLower
+              final enLetters = _isEnUpperCase
+                ? ['ABC', 'DEF','GHI','JKL','MNO','PQR','STU','VWX','YZ', '^A']
+                : ['abc', 'def','ghi','jkl','mno','pqr','stu','vwx','yz', '^a'];
+              String group = enLetters[logicalKeyIndex];
+              List<String> letters = group.split('');
+              _candidates = letters;
+              _inputBuffer.add(enCodes[logicalKeyIndex]); // Mark which key is being selected
+              return;
+            }
+            _committedText += (_isEnUpperCase
+              ? enCodes[logicalKeyIndex]
+              : enCodes[logicalKeyIndex].toLowerCase());
             _lastCommittedChar = null;
           }
           break;
@@ -216,6 +236,21 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       // 判斷是否為詞語（由 lastCommittedChar 產生的候選）
       final isPhrase = _lastCommittedChar != null && (phraseDictionary[_lastCommittedChar!]?.contains(candidate) ?? false);
+      // If candidate selection is for EN or Cangjie key group, commit the letter/radical
+      if (_keyboardMode == KeyboardMode.en && _inputBuffer.length == 1 && _candidates.contains(candidate)) {
+        _committedText += candidate;
+        _inputBuffer.clear();
+        _candidates = [];
+        _lastCommittedChar = null;
+        return;
+      }
+      if (_keyboardMode == KeyboardMode.cangjie && _inputBuffer.length == 1 && _candidates.contains(candidate)) {
+        _committedText += candidate;
+        _inputBuffer.clear();
+        _candidates = [];
+        _lastCommittedChar = null;
+        return;
+      }
       if (isPhrase) {
         // 用詞語取代最後一個單字，詞語為 lastCommittedChar + candidate
         if (_committedText.isNotEmpty) {
@@ -296,6 +331,21 @@ class _MyHomePageState extends State<MyHomePage> {
   void _toggleEnCase() {
     setState(() {
       _isEnUpperCase = !_isEnUpperCase;
+    });
+  }
+
+  void _handleBackspaceLongPress() {
+    setState(() {
+      _committedText = '';
+      _lastCommittedChar = null;
+      _inputBuffer.clear();
+      _candidates = [];
+    });
+  }
+
+  void _handleHeightDrag(double delta) {
+    setState(() {
+      _keyboardHeight = (_keyboardHeight + delta).clamp(200, 600);
     });
   }
 
@@ -397,7 +447,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ],
                     ),
                     SizedBox(
-                      height: 360,
+                      height: _keyboardHeight,
                       child: NineKeyKeyboard(
                         onKeyPressed: _handleKeyPressed,
                         keyboardMode: _keyboardMode,
@@ -409,6 +459,8 @@ class _MyHomePageState extends State<MyHomePage> {
                         },
                         isEnUpperCase: _isEnUpperCase,
                         onEnCaseToggle: _keyboardMode == KeyboardMode.en ? _toggleEnCase : null,
+                        onBackspaceLongPress: _handleBackspaceLongPress,
+                        onHeightDrag: _handleHeightDrag,
                       ),
                     ),
                   ],

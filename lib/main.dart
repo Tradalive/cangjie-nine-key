@@ -372,13 +372,28 @@ class _MyHomePageState extends State<MyHomePage> {
             })(),
             const SizedBox(height: 12),
             Card(
-              elevation: 4,
+              elevation: 2,
               margin: const EdgeInsets.symmetric(horizontal: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(1.0),
                 child: Column(
                   children: [
+                    // Draggable emoji above candidates (no divider, less padding)
+                    GestureDetector(
+                      onVerticalDragUpdate: (details) {
+                        _handleHeightDrag(details.delta.dy);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 0),
+                        child: Center(
+                          child: Text(
+                            '≡',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                          ),
+                        ),
+                      ),
+                    ),
                     // Close button and candidate list row
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -446,22 +461,25 @@ class _MyHomePageState extends State<MyHomePage> {
                         ),
                       ],
                     ),
-                    SizedBox(
-                      height: _keyboardHeight,
-                      child: NineKeyKeyboard(
-                        onKeyPressed: _handleKeyPressed,
-                        keyboardMode: _keyboardMode,
-                        onToggleMode: _toggleMode,
-                        onExit: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Keyboard exited!')),
-                          );
-                        },
-                        isEnUpperCase: _isEnUpperCase,
-                        onEnCaseToggle: _keyboardMode == KeyboardMode.en ? _toggleEnCase : null,
-                        onBackspaceLongPress: _handleBackspaceLongPress,
-                        onHeightDrag: _handleHeightDrag,
-                      ),
+                    Column(
+                      children: [
+                        SizedBox(
+                          height: _keyboardHeight,
+                          child: NineKeyKeyboard(
+                            onKeyPressed: _handleKeyPressed,
+                            keyboardMode: _keyboardMode,
+                            onToggleMode: _toggleMode,
+                            onExit: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Keyboard exited!')),
+                              );
+                            },
+                            isEnUpperCase: _isEnUpperCase,
+                            onEnCaseToggle: _keyboardMode == KeyboardMode.en ? _toggleEnCase : null,
+                            onBackspaceLongPress: _handleBackspaceLongPress,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

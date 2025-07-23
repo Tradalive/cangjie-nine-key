@@ -84,22 +84,6 @@ class NineKeyKeyboard extends StatelessWidget {
         double mainFontSize = buttonHeight * 0.32;
         return Column(
           children: [
-            // Draggable emoji and divider
-            GestureDetector(
-              onVerticalDragUpdate: (details) {
-                if (onHeightDrag != null) onHeightDrag!(details.delta.dy);
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(top: 4, bottom: 2),
-                child: Center(
-                  child: Text(
-                    '≡',
-                    style: TextStyle(fontSize: 24, color: Colors.grey[700]),
-                  ),
-                ),
-              ),
-            ),
-            const Divider(height: 1, thickness: 1),
             ...List.generate(4, (row) {
               return Expanded(
                 child: Row(
